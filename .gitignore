@@ -1,0 +1,7 @@
+venv/
+.venv/
+backend/.env
+ENV/
+.env
+*.env
+
