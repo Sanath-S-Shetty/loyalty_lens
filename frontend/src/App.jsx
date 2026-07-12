@@ -8,12 +8,16 @@ import ProgramsView from "./pages/ProgramsView";
 import SentimentView from "./pages/SentimentView";
 import ComparisonView from "./pages/ComparisonView";
 import ReportsView from "./pages/ReportsView";
-// import SentinelView from "./pages/SentinelView";
+import { runLoyaltyAnalysis } from "./services/api"; // <-- Import our new API service!
 
 function App() {
   const [currentPath, setCurrentPath] = useState("home");
-  const [selectedBrand, setSelectedBrand] = useState("starbucks");
+  const [selectedBrand, setSelectedBrand] = useState("");
   const [comparedBrands, setComparedBrands] = useState(["starbucks", "marriott", "hilton"]);
+  
+  // Create a state to hold the LIVE data from the AI backend
+  const [liveData, setLiveData] = useState(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   // Listen to hash changes for simple routing
   useEffect(() => {
@@ -23,9 +27,7 @@ function App() {
       setCurrentPath(path);
     };
 
-    // Initialize
     handleHashChange();
-
     window.addEventListener("hashchange", handleHashChange);
     return () => window.removeEventListener("hashchange", handleHashChange);
   }, []);
@@ -34,16 +36,41 @@ function App() {
     window.location.hash = "#/" + path;
   };
 
-  const handleAnalysisComplete = (brandKey) => {
-    if (mockBrands[brandKey]) {
-      setSelectedBrand(brandKey);
+  // 🔥 Trigger the AI Pipeline 🔥
+  const handleAnalysisComplete = async (brandInput) => {
+    setIsAnalyzing(true);
+    try {
+      console.log(`Sending ${brandInput} to AI Backend...`);
+      // Call your LangGraph backend!
+      const aiResult = await runLoyaltyAnalysis(brandInput);
+      
+      console.log("Analysis Complete! Received:", aiResult);
+      // Save the AI response to React state
+      setLiveData(aiResult);
+      setSelectedBrand(aiResult.key);
       navigate("programs");
+
+    } catch (error) {
+      console.error("AI Analysis Failed, falling back to mock data:", error);
+      
+      // Fallback to offline mock data if the API is down or fails
+      const fallbackKey = brandInput.toLowerCase();
+      if (mockBrands[fallbackKey]) {
+        setSelectedBrand(fallbackKey);
+        setLiveData(null); // Clear live data to use mock
+        navigate("programs");
+      } else {
+        alert("Analysis failed and no offline mock data is available for this brand.");
+      }
+    } finally {
+      setIsAnalyzing(false);
     }
   };
 
-  const activeBrandData = mockBrands[selectedBrand] || mockBrands.starbucks;
+  // If we have live AI data, use it! Otherwise, fall back to the mock database.
+  const activeBrandData = liveData || mockBrands[selectedBrand] || mockBrands.starbucks;
 
-  // Intercept click events globally to catch clicks on anchors that are on the home page
+  // Intercept click events globally
   useEffect(() => {
     const handleGlobalClick = (e) => {
       const anchor = e.target.closest("a");
@@ -81,6 +108,7 @@ function App() {
           <Home
             onAnalysisComplete={handleAnalysisComplete}
             onNavigateCompare={() => navigate("comparison")}
+            isAnalyzing={isAnalyzing} // Pass loading state to Home if you want to show a spinner!
           />
         </div>
       </div>
@@ -91,12 +119,7 @@ function App() {
   let childView = null;
   switch (currentPath) {
     case "dashboard":
-      childView = (
-        <DashboardView
-          onSelectBrand={setSelectedBrand}
-          onNavigate={navigate}
-        />
-      );
+      childView = <DashboardView onSelectBrand={setSelectedBrand} onNavigate={navigate} />;
       break;
     case "programs":
       childView = <ProgramsView brand={activeBrandData} />;
@@ -105,34 +128,24 @@ function App() {
       childView = <SentimentView brand={activeBrandData} />;
       break;
     case "comparison":
-      childView = (
-        <ComparisonView
-          comparedBrands={comparedBrands}
-          setComparedBrands={setComparedBrands}
-        />
-      );
+      childView = <ComparisonView comparedBrands={comparedBrands} setComparedBrands={setComparedBrands} />;
       break;
     case "reports":
       childView = <ReportsView brand={activeBrandData} />;
       break;
-    // case "sentinel":
-    //   childView = <SentinelView brand={activeBrandData} />;
-    //   break;
     default:
-      childView = (
-        <DashboardView
-          onSelectBrand={setSelectedBrand}
-          onNavigate={navigate}
-        />
-      );
+      childView = <DashboardView onSelectBrand={setSelectedBrand} onNavigate={navigate} />;
   }
 
   return (
     <MainLayout
       currentPath={currentPath}
       onNavigate={navigate}
-      selectedBrand={selectedBrand}
-      onSelectBrand={setSelectedBrand}
+      selectedBrand={activeBrandData.key || selectedBrand}
+      onSelectBrand={(brand) => {
+        setLiveData(null); // If user manually switches to a mock brand from sidebar, clear live data
+        setSelectedBrand(brand);
+      }}
     >
       {childView}
     </MainLayout>

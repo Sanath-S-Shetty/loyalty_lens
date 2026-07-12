@@ -144,42 +144,8 @@ export default function SentimentView({ brand }) {
         </div>
       </div>
 
-      {/* Sources & Credibility Tracking Panel */}
-      <div className="bg-white/[0.03] backdrop-blur-md border border-white/[0.06] rounded-3xl p-6 md:p-8 shadow-2xl">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5 pb-4 border-b border-white/5">
-          <div>
-            <h3 className="text-base font-bold text-white">
-              Sentiment Tracking Sources
-            </h3>
-            <p className="text-xs text-gray-500">
-              Scraped channels from which social sentiment score is computed.
-            </p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {brand.sources.map((source, idx) => (
-            <div key={idx} className="flex items-center justify-between p-4 bg-white/[0.02] border border-white/5 rounded-2xl">
-              <div className="overflow-hidden pr-2">
-                <a
-                  href={source.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs text-teal-450 hover:underline font-semibold block truncate"
-                >
-                  {source.title} ↗
-                </a>
-                <span className="text-[10px] text-gray-500">Data Source Type: {source.url.includes("reddit") ? "Social Media" : "Official / Case Study"}</span>
-              </div>
-              <div className="flex-shrink-0">
-                <span className="px-2 py-1 bg-white/5 border border-white/10 rounded-lg text-[10px] font-semibold text-gray-350">
-                  Credibility: {source.credibility}%
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+    
+       
     </div>
   );
 }

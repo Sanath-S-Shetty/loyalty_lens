@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React,{ useState } from "react";
 
 export default function Home({ onAnalysisComplete, onNavigateCompare }) {
   const [showSearchModal, setShowSearchModal] = useState(false);
@@ -55,46 +55,45 @@ export default function Home({ onAnalysisComplete, onNavigateCompare }) {
     }
   };
 
-  const handleStartAnalysis = (e) => {
-    e.preventDefault();
-    if (!companyName) return;
+  const handleStartAnalysis = async (e) => {
+  e.preventDefault();
+  if (!companyName) return;
 
-    const normalized = companyName.toLowerCase();
-    let targetKey = "starbucks";
-    if (normalized.includes("marriott") || normalized.includes("bonvoy")) targetKey = "marriott";
-    else if (normalized.includes("delta") || normalized.includes("skymiles")) targetKey = "delta";
-    else if (normalized.includes("sephora") || normalized.includes("insider") || normalized.includes("beauty")) targetKey = "sephora";
+  setSearchStage(1);
+  setSearchStatus("Stage 1: Finding official loyalty pages & T&Cs using Tavily Search API...");
+  setAgentOutput(null);
 
-    setSearchStage(1);
-    setSearchStatus("Stage 1: Finding official loyalty pages & T&Cs using Tavily Search API...");
-    setAgentOutput(null);
-
+  // Cosmetic stage progression only — purely visual, doesn't gate anything
+  const timers = [
     setTimeout(() => {
       setSearchStage(2);
       setSearchStatus("Stage 2: Processing and rendering dynamic content using Firecrawl...");
-    }, 1200);
-
+    }, 1200),
     setTimeout(() => {
       setSearchStage(3);
       setSearchStatus("Stage 3: Fact Finder Agent extracting structured rewards data via Gemini Flash...");
-    }, 2400);
-
+    }, 2400),
     setTimeout(() => {
       setSearchStage(4);
       setSearchStatus("Stage 4: Critic Agent scanning forums and reviews to calculate Customer Sentiment...");
-    }, 3600);
+    }, 4800),
+   
+  ];
 
-    setTimeout(() => {
-      setSearchStage(5);
-      setSearchStatus("Stage 5: Fact Checker Agent verifying citations and matching URLs via Claude...");
-    }, 4800);
-
-    setTimeout(() => {
-      setSearchStage(6);
-      setSearchStatus("Analysis Complete! Assembling Intelligence Report...");
-      setAgentOutput(mockReports[targetKey]);
-    }, 6000);
-  };
+  try {
+    // THIS is the call that was missing — fires the real backend request
+    // as soon as the form submits, not on a button click after a mock report.
+    await onAnalysisComplete(companyName);
+    timers.forEach(clearTimeout);
+    closeModal(); // App.js has already navigated by the time this resolves
+  } catch (err) {
+    timers.forEach(clearTimeout);
+    console.error("Analysis failed:", err);
+    setSearchStage(0);
+    setSearchStatus("");
+    alert("Analysis failed. Please try again.");
+  }
+};
 
   const closeModal = () => {
     setShowSearchModal(false);
@@ -270,7 +269,7 @@ export default function Home({ onAnalysisComplete, onNavigateCompare }) {
         {/* Top Pill Info */}
         <div className="mb-6 animate-pulse-glow-white">
           <div
-            onClick={() => { setCompanyName("Starbucks"); setShowSearchModal(true); }}
+            onClick={() => { setCompanyName(""); setShowSearchModal(true); }}
             className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full glass border border-white/10 text-[11px] text-gray-300 hover:border-white/20 transition-all duration-300 cursor-pointer pointer-events-auto"
           >
             <span className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-ping"></span>
@@ -352,10 +351,10 @@ export default function Home({ onAnalysisComplete, onNavigateCompare }) {
               <svg className="w-5 h-5 text-teal-400" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 21l8.904-4.137m-8.904 0L21 9l-3.413-3.413M9.813 15.904L3.904 12 12 3l3.587 3.587M3.904 12l8.904 4.137M12 3v18" />
               </svg>
-              <h2 className="text-xl font-bold tracking-wide">Loyalty Intelligence Agent Simulator</h2>
+              <h2 className="text-xl font-bold tracking-wide">Loyalty Intelligence Agent</h2>
             </div>
             <p className="text-xs text-gray-400 mb-6">
-              Enter any brand to run our autonomous multi-agent analysis system. Try <strong className="text-teal-400 cursor-pointer" onClick={() => setCompanyName("Starbucks")}>Starbucks</strong>, <strong className="text-teal-400 cursor-pointer" onClick={() => setCompanyName("Marriott")}>Marriott</strong>, <strong className="text-teal-400 cursor-pointer" onClick={() => setCompanyName("Delta")}>Delta</strong>, or <strong className="text-teal-400 cursor-pointer" onClick={() => setCompanyName("Sephora")}>Sephora</strong>.
+              Enter any brand to run our autonomous multi-agent analysis system. Try <strong className="text-teal-400 cursor-pointer" onClick={() => setCompanyName("Starbucks")}>Starbucks</strong>, <strong className="text-teal-400 cursor-pointer" onClick={() => setCompanyName("KFC")}>KFC</strong>, or <strong className="text-teal-400 cursor-pointer" onClick={() => setCompanyName("AIR INDIA")}>AIR INDIA</strong>.
             </p>
 
             {/* Input Form */}
@@ -365,7 +364,7 @@ export default function Home({ onAnalysisComplete, onNavigateCompare }) {
                   <input
                     type="text"
                     required
-                    placeholder="Enter loyalty program name (e.g. Starbucks Rewards)"
+                    placeholder="Enter loyalty program name"
                     value={companyName}
                     onChange={(e) => setCompanyName(e.target.value)}
                     className="flex-grow px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-teal-400 transition"
@@ -400,13 +399,13 @@ export default function Home({ onAnalysisComplete, onNavigateCompare }) {
                 </div>
 
                 {/* Progress Indicators */}
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 pt-4 border-t border-white/5">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-4 border-t border-white/4">
                   {[
                     { label: "1. Search", stageNum: 1 },
                     { label: "2. Scrape", stageNum: 2 },
                     { label: "3. Extract", stageNum: 3 },
                     { label: "4. Sentiment", stageNum: 4 },
-                    { label: "5. Verify", stageNum: 5 }
+                   
                   ].map((s) => (
                     <div
                       key={s.label}

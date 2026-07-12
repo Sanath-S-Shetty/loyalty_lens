@@ -1,83 +1,158 @@
 import os
-import json
-from typing import Dict, Any
 from dotenv import load_dotenv
-from google import genai
-from tavily import TavilyClient
+from typing import TypedDict, List, Dict, Any, Optional
+from langgraph.graph import StateGraph, END
+from langchain_google_genai import ChatGoogleGenerativeAI
 from firecrawl import FirecrawlApp
+from tavily import TavilyClient
+import urllib.request
+import urllib.parse
+from schema import LoyaltyReport
 
-from schema import LoyaltyProgramReport
+load_dotenv() 
 
-load_dotenv(override=True)
+tavily_client = TavilyClient(api_key=os.getenv("Tavily"))
+firecrawl_app = FirecrawlApp(api_key=os.getenv("Firecrawl"))
 
-def run_loyalty_analysis(company_name: str) -> Dict[str, Any]:
-    print(f"🔍 [Agent] Initiating analysis for {company_name}...", flush=True)
+llm = ChatGoogleGenerativeAI(
+    model="gemini-3.1-flash-lite",
+    temperature=0,
+    api_key=os.getenv("Gemini")
+)
+
+structured_llm = llm.with_structured_output(LoyaltyReport)
+
+class GraphState(TypedDict):
+    company_name: str
+    official_urls: List[str]
+    critic_urls: List[str]
+    official_raw_text: str
+    critic_raw_text: str
+  
+    final_report: Optional[dict]
+    error: Optional[str]
+
+def scout_node(state: GraphState) -> Dict[str, Any]:
+    company = state["company_name"]
+    print(f"\n🔍 [Scout] Searching web for {company}...")
     
-    tavily_key = os.getenv("Tavily")
-    if not tavily_key:
-        return {"status": "FAILED", "errors": ["Tavily API key missing"]}
+    official_search = tavily_client.search(f"{company} India official loyalty rewards program terms conditions", max_results=1)
+    official_urls = [res["url"] for res in official_search.get("results", [])]
+    print(f"🔗 [Scout] Found Official URL: {official_urls[0] if official_urls else 'None'}")
+    
 
-    # 1. Tavily Search Discovery
+    encoded_query = urllib.parse.quote(f"{company} India rewards program complaints")
+    reddit_rss_url = f"https://www.reddit.com/search.rss?q={encoded_query}&sort=relevance"
+    critic_urls = [reddit_rss_url]
+
+
+   
+    print(f"🔗 [Scout] Found Critic URL: {critic_urls[0] if critic_urls else 'None'}")
+    
+    return {"official_urls": official_urls, "critic_urls": critic_urls}
+
+def scrape_official_node(state: GraphState) -> Dict[str, Any]:
+    urls = state.get("official_urls", [])
+    if not urls: return {"official_raw_text": "No official data found."}
+    
     try:
-        print(f"🔍 [Agent] Connecting to Tavily API for: {company_name}...", flush=True)
-        tavily = TavilyClient(api_key=tavily_key)
-        query = f"{company_name} rewards membership tiers official site"
+        print(f"🔥 [Scraper] Scraping Official Doc: {urls[0]}")
         
-        search_result = tavily.search(query=query, max_results=1)
-        print("🔍 [Agent] Tavily request completed successfully.", flush=True)
+        # FIX: Use the exact syntax from your Firecrawl documentation
+        scrape_result = firecrawl_app.scrape(
+            urls[0],
+            formats=["markdown"]
+        ) 
         
-        # Safely extract the URL based on the exact data structure we tested
-        if isinstance(search_result, dict) and 'results' in search_result and len(search_result['results']) > 0:
-            target_url = search_result['results'][0]['url']
-            print(f"✅ [Agent] Target URL identified: {target_url}", flush=True)
+        # Handle both dicts and Document objects
+        if isinstance(scrape_result, dict):
+            markdown = scrape_result.get('markdown', '')
         else:
-            return {"status": "FAILED", "errors": ["Tavily returned an empty results list."]}
+            markdown = getattr(scrape_result, 'markdown', str(scrape_result))
             
+        print(f"✅ [Scraper] Success! Scraped {len(markdown)} characters of official text.")
+        return {"official_raw_text": markdown}
     except Exception as e:
-        print(f"❌ [Agent] Search failed with exception: {e}", flush=True)
-        return {"status": "FAILED", "errors": [f"Search failure: {str(e)}"]}
+        print(f"❌ [Scraper] Error scraping official url: {str(e)}")
+        return {"official_raw_text": f"Scrape failed: {str(e)}"}
 
-    # 2. Firecrawl Extraction
-    print(f"🕷️ [Agent] Requesting Firecrawl scrapers for {target_url}...", flush=True)
-    try:
-        app = FirecrawlApp(api_key=os.getenv("Firecrawl"))
-        scrape_result = app.scrape_url(target_url)
-        
-        if hasattr(scrape_result, "markdown") and scrape_result.markdown:
-            raw_markdown = scrape_result.markdown[:6000]
-        elif isinstance(scrape_result, dict):
-            raw_markdown = scrape_result.get('markdown', '')[:6000]
-        else:
-            raw_markdown = str(scrape_result)[:6000]
-            
-        print(f"✅ [Agent] Successfully extracted {len(raw_markdown)} characters.", flush=True)
-    except Exception as e:
-        print(f"❌ [Agent] Scraping failed with exception: {e}", flush=True)
-        return {"status": "FAILED", "errors": [f"Scraping failure: {str(e)}"]}
 
-    # 3. Gemini Fact Extraction & Structuring
-    print(f"🤖 [Agent] Handing context payload to Gemini...", flush=True)
+def scrape_critics_node(state: GraphState) -> Dict[str, Any]:
+    urls = state.get("critic_urls", [])
+    if not urls: return {"critic_raw_text": "No critic data found."}
+    
+    url = urls[0]
     try:
-        client = genai.Client(api_key=os.getenv("Gemini"))
-        prompt = f"""
-        Extract complete loyalty program structure, reward tiers, mechanisms, and rules for {company_name}.
-        Analyze user sentiments, advantages, and limitations based on this data context:
+        print(f"🔥 [Scraper] Fetching Critic RSS: {url}")
         
-        {raw_markdown}
-        """
-        
-        response = client.models.generate_content(
-            model='gemini-2.5-flash',
-            contents=prompt,
-            config={
-                "response_mime_type": "application/json",
-                "response_schema": LoyaltyProgramReport,
-            }
+        # Bypass Firecrawl entirely and fetch the XML natively using Python
+        req = urllib.request.Request(
+            url, 
+            headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 LoyaltyLensBot/1.0'}
         )
-        
-        print("✅ [Agent] Analysis pipeline finalized successfully.", flush=True)
-        return json.loads(response.text)
+        with urllib.request.urlopen(req) as response:
+            rss_data = response.read().decode('utf-8')
+            
+        print(f"✅ [Scraper] Success! Fetched {len(rss_data)} characters of Reddit RSS XML.")
+        return {"critic_raw_text": rss_data}
         
     except Exception as e:
-        print(f"❌ [Agent] Gemini parsing failed with exception: {e}", flush=True)
-        return {"status": "FAILED", "errors": [f"AI synthesis failure: {str(e)}"]}
+        print(f"❌ [Scraper] Error fetching critic RSS: {str(e)}")
+        return {"critic_raw_text": f"RSS fetch failed: {str(e)}"}
+
+
+
+def synthesis_node(state: GraphState) -> Dict[str, Any]:
+    print("✍️ [Synthesizer] Generating final structured report...")
+    company = state["company_name"]
+    official = state["official_raw_text"]
+    critics = state["critic_raw_text"]
+   
+    
+    prompt = f"""
+    You are an expert loyalty program analyst. Synthesize a comprehensive JSON report for {company}.
+    IMPORTANT: Base your analysis STRICTLY on the provided scraped text below. 
+    
+    Official Data: {official[:50000]}
+    Critic Reviews: {critics[:50000]}
+    
+    """
+    
+    final_structured_data = structured_llm.invoke(prompt)
+    report_dict = final_structured_data.model_dump()
+    
+    # 🔥 THE FIX: Inject the ACTUAL URLs back into the response so the UI can display them!
+    official_url = state.get("official_urls", ["#"])[0] if state.get("official_urls") else "#"
+
+     # Rebuild the standard HTML Reddit URL for the frontend targeting India
+    import urllib.parse
+    encoded_query = urllib.parse.quote(f"{company} India rewards program complaints")
+    critic_url = f"https://www.reddit.com/search/?q={encoded_query}&sort=relevance"
+    
+    
+    report_dict["actual_sources"] = [
+        {"name": "Official Documentation", "url": official_url, "credibility": 95},
+        {"name": "Community Forums", "url": critic_url, "credibility": 82}
+    ]
+    
+    print("🎉 [Pipeline] Analysis Complete!")
+    return {"final_report": report_dict}
+
+# Build and Compile the Graph
+workflow = StateGraph(GraphState)
+
+workflow.add_node("scout", scout_node)
+workflow.add_node("scrape_official", scrape_official_node)
+workflow.add_node("scrape_critics", scrape_critics_node)
+
+workflow.add_node("synthesize", synthesis_node)
+
+workflow.set_entry_point("scout")
+workflow.add_edge("scout", "scrape_official")
+workflow.add_edge("scout", "scrape_critics")
+
+workflow.add_edge("scrape_official", "synthesize")
+workflow.add_edge("scrape_critics", "synthesize")
+workflow.add_edge("synthesize", END)
+
+loyalty_agent_pipeline = workflow.compile()

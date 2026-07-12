@@ -5,7 +5,9 @@ from sqlalchemy.orm import Session
 
 from database import engine, SessionLocal, Base, DBJob, init_db
 from schema import AnalysisRequest, JobResponse
-from agents import run_loyalty_analysis
+
+# Import the new LangGraph pipeline instead of the old function
+from agents import loyalty_agent_pipeline
 
 # Build tables locally
 init_db()
@@ -27,7 +29,7 @@ def get_db():
     finally:
         db.close()
 
-# Async worker processing pipeline
+# Async worker processing pipeline using LangGraph
 def run_agent_pipeline(job_id: str, company_name: str):
     db = SessionLocal()
     job = db.query(DBJob).filter(DBJob.job_id == job_id).first()
@@ -37,14 +39,22 @@ def run_agent_pipeline(job_id: str, company_name: str):
         db.commit()
         
         try:
-            final_report = run_loyalty_analysis(company_name)
+            # 1. Initialize the starting state for LangGraph
+            initial_state = {"company_name": company_name}
             
-            if isinstance(final_report, dict) and final_report.get("status") == "FAILED":
-                job.status = "FAILED"
-                job.result_data = {"errors": final_report.get("errors")}
-            else:
+            # 2. Run the LangGraph pipeline
+            final_state = loyalty_agent_pipeline.invoke(initial_state)
+            
+            # 3. Extract the Pydantic-validated JSON from the final state
+            final_report = final_state.get("final_report")
+            
+            if final_report:
                 job.status = "COMPLETED"
                 job.result_data = final_report
+            else:
+                job.status = "FAILED"
+                job.result_data = {"error": "Pipeline failed to generate report"}
+                
         except Exception as e:
             job.status = "FAILED"
             job.result_data = {"error": str(e)}
@@ -61,6 +71,7 @@ def start_analysis(request: AnalysisRequest, background_tasks: BackgroundTasks, 
     db.commit()
     db.refresh(new_job)
     
+    # Trigger the LangGraph background task
     background_tasks.add_task(run_agent_pipeline, job_id, request.company_name)
     return {"job_id": job_id, "status": "PENDING", "company_name": request.company_name}
 
