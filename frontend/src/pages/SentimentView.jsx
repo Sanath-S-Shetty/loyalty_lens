@@ -10,9 +10,9 @@ export default function SentimentView({ brand }) {
   }
 
   // Sentiment values
-  const positiveVal = brand.sentiment;
-  const negativeVal = Math.round((100 - positiveVal) * 0.4);
-  const neutralVal = 100 - positiveVal - negativeVal;
+  // const positiveVal = brand.sentiment;
+  // const negativeVal = Math.round((100 - positiveVal) * 0.4);
+  // const neutralVal = 100 - positiveVal - negativeVal;
 
   return (
     <div className="space-y-6">
@@ -41,9 +41,7 @@ export default function SentimentView({ brand }) {
             
             {/* Sources indicator */}
             <div className="pt-4 flex flex-wrap items-center justify-center md:justify-start gap-3">
-              <span className="inline-flex items-center gap-1 text-[11px] text-gray-400 font-semibold bg-white/5 border border-white/10 px-3 py-1 rounded-lg">
-                Credibility Score: {brand.score}%
-              </span>
+             
               <span className="inline-flex items-center gap-1 text-[11px] text-gray-400 font-semibold bg-white/5 border border-white/10 px-3 py-1 rounded-lg">
                 Sources Tracked: {brand.sources.length} Channels
               </span>
@@ -66,7 +64,7 @@ export default function SentimentView({ brand }) {
                 className="text-teal-400 transition-all duration-1000 ease-out"
                 strokeWidth="10"
                 strokeDasharray={`${2 * Math.PI * 40}`}
-                strokeDashoffset={`${2 * Math.PI * 40 * (1 - positiveVal / 100)}`}
+                strokeDashoffset={`${2 * Math.PI * 40 * (1 - brand.sentiment.positive / 100)}`}
                 strokeLinecap="round"
                 stroke="currentColor"
                 fill="transparent"
@@ -76,7 +74,7 @@ export default function SentimentView({ brand }) {
               />
             </svg>
             <div className="absolute flex flex-col items-center">
-              <span className="text-4xl font-extrabold text-white">{positiveVal}%</span>
+              <span className="text-4xl font-extrabold text-white">{brand.sentiment.positive}%</span>
               <span className="text-[10px] text-teal-400 uppercase font-bold tracking-wider">Positive</span>
             </div>
           </div>
@@ -86,15 +84,15 @@ export default function SentimentView({ brand }) {
         <div className="grid grid-cols-3 gap-4 border-t border-white/5 mt-6 pt-6 text-center">
           <div>
             <div className="text-xs text-gray-500 font-medium">Positive</div>
-            <div className="text-2xl font-bold text-teal-400 mt-1">{positiveVal}%</div>
+            <div className="text-2xl font-bold text-teal-400 mt-1">{brand.sentiment.positive}%</div>
           </div>
           <div className="border-x border-white/5">
             <div className="text-xs text-gray-500 font-medium">Neutral</div>
-            <div className="text-2xl font-bold text-gray-300 mt-1">{neutralVal}%</div>
+            <div className="text-2xl font-bold text-gray-300 mt-1">{brand.sentiment.neutral}%</div>
           </div>
           <div>
             <div className="text-xs text-gray-500 font-medium">Negative</div>
-            <div className="text-2xl font-bold text-rose-400 mt-1">{negativeVal}%</div>
+            <div className="text-2xl font-bold text-rose-400 mt-1">{brand.sentiment.negative}%</div>
           </div>
         </div>
       </div>
@@ -114,9 +112,7 @@ export default function SentimentView({ brand }) {
             {brand.positiveThemes.map((theme, idx) => (
               <div key={idx} className="bg-emerald-500/5 border border-emerald-500/10 rounded-2xl p-4 flex items-center justify-between">
                 <span className="text-xs font-bold text-emerald-300">{theme.text}</span>
-                <span className="text-xs font-bold text-emerald-450 bg-emerald-500/10 px-2.5 py-1 rounded-lg">
-                  {theme.value}% Approval
-                </span>
+                
               </div>
             ))}
           </div>
@@ -135,9 +131,7 @@ export default function SentimentView({ brand }) {
             {brand.negativeThemes.map((theme, idx) => (
               <div key={idx} className="bg-rose-500/5 border border-rose-500/10 rounded-2xl p-4 flex items-center justify-between">
                 <span className="text-xs font-bold text-rose-300">{theme.text}</span>
-                <span className="text-xs font-bold text-rose-400 bg-rose-500/10 px-2.5 py-1 rounded-lg">
-                  {theme.value}% Frequency
-                </span>
+               
               </div>
             ))}
           </div>

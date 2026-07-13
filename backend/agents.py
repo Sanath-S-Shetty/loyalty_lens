@@ -39,7 +39,12 @@ def scout_node(state: GraphState) -> Dict[str, Any]:
     official_search = tavily_client.search(f"{company} India official loyalty rewards program terms conditions", max_results=1)
     official_urls = [res["url"] for res in official_search.get("results", [])]
     print(f"🔗 [Scout] Found Official URL: {official_urls[0] if official_urls else 'None'}")
-    
+    official_results = official_search.get("results", [])
+    if official_results:
+        # Default to 0 (instead of 0.95) if the 'score' key is mysteriously missing from a valid result
+        official_score = int(official_results[0].get("score", 0) * 100)
+    else:
+        official_score = 0
 
     encoded_query = urllib.parse.quote(f"{company} India rewards program complaints")
     reddit_rss_url = f"https://www.reddit.com/search.rss?q={encoded_query}&sort=relevance"
@@ -49,7 +54,7 @@ def scout_node(state: GraphState) -> Dict[str, Any]:
    
     print(f"🔗 [Scout] Found Critic URL: {critic_urls[0] if critic_urls else 'None'}")
     
-    return {"official_urls": official_urls, "critic_urls": critic_urls}
+    return {"official_urls": official_urls, "critic_urls": critic_urls, "official_score": official_score}
 
 def scrape_official_node(state: GraphState) -> Dict[str, Any]:
     urls = state.get("official_urls", [])
@@ -123,7 +128,8 @@ def synthesis_node(state: GraphState) -> Dict[str, Any]:
     
     # 🔥 THE FIX: Inject the ACTUAL URLs back into the response so the UI can display them!
     official_url = state.get("official_urls", ["#"])[0] if state.get("official_urls") else "#"
-
+    official_score = state.get("official_score", 0) # Fallback to 0
+    critic_score = state.get("critic_score", 82)
      # Rebuild the standard HTML Reddit URL for the frontend targeting India
     import urllib.parse
     encoded_query = urllib.parse.quote(f"{company} India rewards program complaints")
@@ -131,7 +137,7 @@ def synthesis_node(state: GraphState) -> Dict[str, Any]:
     
     
     report_dict["actual_sources"] = [
-        {"name": "Official Documentation", "url": official_url, "credibility": 95},
+        {"name": "Official Documentation", "url": official_url, "credibility": official_score},
         {"name": "Community Forums", "url": critic_url, "credibility": 82}
     ]
     

@@ -101,12 +101,7 @@ export default function ReportsView({ brand }) {
                 <span className="text-gray-500">Sources Count:</span>
                 <span className="font-semibold text-white">{metadata.sources} websites</span>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-500">Verification:</span>
-                <span className="inline-flex items-center gap-1 font-semibold text-teal-400 bg-teal-500/10 border border-teal-500/20 px-2 py-0.5 rounded-full text-[10px]">
-                  {metadata.verification}
-                </span>
-              </div>
+              
             </div>
           </div>
 
@@ -142,11 +137,7 @@ export default function ReportsView({ brand }) {
               Citations and web resources referenced to compile this brief.
             </p>
           </div>
-          <div className="flex items-center gap-2 bg-emerald-500/10 text-emerald-450 px-3.5 py-1.5 rounded-full border border-emerald-500/20">
-            <span className="text-xs font-bold uppercase tracking-wider">
-              Verification Level: 100% Verified
-            </span>
-          </div>
+         
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -165,7 +156,11 @@ export default function ReportsView({ brand }) {
               </div>
               <div className="flex-shrink-0">
                 <span className="px-2 py-1 bg-white/5 border border-white/10 rounded-lg text-[10px] font-semibold text-gray-350">
-                  Credibility: {source.credibility}%
+                 {source.credibility === 0 ? (
+    "Credibility: Not Found"
+  ) : (
+    `Credibility: ${source.credibility}%`
+  )}
                 </span>
               </div>
             </div>
