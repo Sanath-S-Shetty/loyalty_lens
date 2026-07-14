@@ -1,22 +1,32 @@
-from sqlalchemy import create_engine, Column, String, JSON
-from sqlalchemy.orm import declarative_base, sessionmaker
+# database.py
+import os
+import datetime
+from sqlalchemy import create_engine, Column, String, DateTime
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.declarative import declarative_base
 
-DATABASE_URL = "sqlite:///./loyalty.db"
+# 1. Setup the Connection String (Points to your Docker container)
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/loyalty_lens")
 
-# Create database engine
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+# 2. Configure the SQLAlchemy Engine and Session Creators
+engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
-# Define the Jobs table
+# 3. Your Database Model
 class DBJob(Base):
-    __tablename__ = "analysis_jobs"
+    __tablename__ = "jobs"
 
-    job_id = Column(String, primary_key=True, index=True)
-    company_name = Column(String, index=True)
-    status = Column(String, default="PENDING")  # PENDING, PROCESSING, COMPLETED, FAILED
-    result_data = Column(JSON, nullable=True)
+    job_id = Column(String(100), primary_key=True, index=True)
+    company_name = Column(String(255), nullable=False)
+    status = Column(String(50), default="PENDING")
+    
+    # Using JSONB ensures your structured Pydantic data from LangGraph maps perfectly
+    result_data = Column(JSONB, nullable=True) 
+    
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
-# Function to initialize the database
+# 4. Initialization Helper (Called in main.py to auto-create tables on startup)
 def init_db():
     Base.metadata.create_all(bind=engine)

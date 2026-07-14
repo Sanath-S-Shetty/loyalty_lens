@@ -1,7 +1,11 @@
 # backend/schema.py
 from pydantic import BaseModel, Field, model_validator
 from typing import List, Optional, Literal
-
+from sqlalchemy import Column, Integer, String, DateTime
+from sqlalchemy.dialects.postgresql import JSONB
+from database import Base
+import datetime
+from sqlalchemy.sql import func
 
 class SentimentBreakdown(BaseModel):
     positive: int = Field(
@@ -82,3 +86,19 @@ class JobResponse(BaseModel):
     status: str
     company_name: str
     result_data: Optional[dict] = None
+
+class LoyaltyReportDB(Base):
+    """
+    SQLAlchemy table model to persist the AI-generated LoyaltyReports in Postgres.
+    """
+    __tablename__ = "loyalty_reports"
+
+    id = Column(Integer, primary_key=True, index=True)
+    company_key = Column(String(100), unique=True, index=True, nullable=False) # Maps to report.key
+    company_name = Column(String(255), nullable=False)                         # Maps to report.name
+    score = Column(Integer, nullable=False)
+    
+    # JSONB safely swallows tiers, sentiment, themes, and summaries as structured JSON
+    report_data = Column(JSONB, nullable=False) 
+    
+    created_at = Column(DateTime, default= func.now)

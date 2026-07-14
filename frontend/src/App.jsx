@@ -12,13 +12,32 @@ import { runLoyaltyAnalysis } from "./services/api"; // <-- Import our new API s
 
 function App() {
   const [currentPath, setCurrentPath] = useState("home");
-  const [selectedBrand, setSelectedBrand] = useState("");
-  const [comparedBrands, setComparedBrands] = useState(["starbucks", "marriott", "hilton"]);
   
+  const [comparedBrands, setComparedBrands] = useState([]);
+ const [selectedBrand, setSelectedBrand] = useState(() => {
+    return localStorage.getItem("selected_brand_name") || "Starbucks";
+  });
   // Create a state to hold the LIVE data from the AI backend
   const [liveData, setLiveData] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
+ useEffect(() => {
+    const reloadActiveBrandData = async () => {
+      if (selectedBrand) {
+        setIsAnalyzing(true);
+        try {
+          const result = await runLoyaltyAnalysis(selectedBrand);
+          setLiveData(result);
+        } catch (error) {
+          console.error("Failed to restore persistent brand data from DB:", error);
+          setLiveData(null); // Fallback to local mocks if server is down
+        } finally {
+          setIsAnalyzing(false);
+        }
+      }
+    };
+    reloadActiveBrandData();
+  }, [selectedBrand]);
   // Listen to hash changes for simple routing
   useEffect(() => {
     const handleHashChange = () => {
@@ -32,32 +51,40 @@ function App() {
     return () => window.removeEventListener("hashchange", handleHashChange);
   }, []);
 
+ const handleBrandSelectionChange = (brandName) => {
+    if (!brandName) return;
+    const cleanName = brandName.trim();
+    setSelectedBrand(cleanName);
+    localStorage.setItem("selected_brand_name", cleanName);
+  };
+
   const navigate = (path) => {
     window.location.hash = "#/" + path;
   };
 
-  // 🔥 Trigger the AI Pipeline 🔥
-  const handleAnalysisComplete = async (brandInput) => {
+const handleAnalysisComplete = async (brandInput) => {
     setIsAnalyzing(true);
     try {
       console.log(`Sending ${brandInput} to AI Backend...`);
-      // Call your LangGraph backend!
       const aiResult = await runLoyaltyAnalysis(brandInput);
       
       console.log("Analysis Complete! Received:", aiResult);
+      
       // Save the AI response to React state
       setLiveData(aiResult);
-      setSelectedBrand(aiResult.key);
+      
+      // Strictly anchor the app to the clean string you typed!
+      handleBrandSelectionChange(brandInput.trim().toLowerCase());
+      
       navigate("programs");
 
     } catch (error) {
       console.error("AI Analysis Failed, falling back to mock data:", error);
       
-      // Fallback to offline mock data if the API is down or fails
-      const fallbackKey = brandInput.toLowerCase();
+      const fallbackKey = brandInput.trim().toLowerCase();
       if (mockBrands[fallbackKey]) {
-        setSelectedBrand(fallbackKey);
         setLiveData(null); // Clear live data to use mock
+        handleBrandSelectionChange(fallbackKey);
         navigate("programs");
       } else {
         alert("Analysis failed and no offline mock data is available for this brand.");
@@ -66,9 +93,10 @@ function App() {
       setIsAnalyzing(false);
     }
   };
-
   // If we have live AI data, use it! Otherwise, fall back to the mock database.
-  const activeBrandData = liveData || mockBrands[selectedBrand] || mockBrands.starbucks;
+  // Change this line in App.jsx
+// Replace your activeBrandData matching block with this clean check:
+  const activeBrandData = liveData || mockBrands[selectedBrand.toLowerCase()] || mockBrands.starbucks;
 
   // Intercept click events globally
   useEffect(() => {
@@ -119,7 +147,33 @@ function App() {
   let childView = null;
   switch (currentPath) {
     case "dashboard":
-      childView = <DashboardView onSelectBrand={setSelectedBrand} onNavigate={navigate} />;
+      childView = (
+        <DashboardView 
+          onSelectBrand={async (brandName) => {
+            setIsAnalyzing(true);
+            try {
+              // Trigger the pipeline (will hit the DB cache instantly via our API logic!)
+              const result = await runLoyaltyAnalysis(brandName);
+              setLiveData(result);
+              
+              // ✅ Anchored strictly to the clean input
+              handleBrandSelectionChange(brandName.trim().toLowerCase());
+              
+            } catch (error) {
+              console.error("Failed to load dashboard brand:", error);
+              // Fallback to mock data if it fails
+              setLiveData(null);
+              
+              // ✅ Anchored strictly to the clean input here too
+              handleBrandSelectionChange(brandName.trim().toLowerCase());
+              
+            } finally {
+              setIsAnalyzing(false);
+            }
+          }} 
+          onNavigate={navigate} 
+        />
+      );
       break;
     case "programs":
       childView = <ProgramsView brand={activeBrandData} />;
@@ -138,17 +192,37 @@ function App() {
   }
 
   return (
-    <MainLayout
-      currentPath={currentPath}
-      onNavigate={navigate}
-      selectedBrand={activeBrandData.key || selectedBrand}
-      onSelectBrand={(brand) => {
-        setLiveData(null); // If user manually switches to a mock brand from sidebar, clear live data
-        setSelectedBrand(brand);
-      }}
-    >
-      {childView}
-    </MainLayout>
+   <MainLayout
+    currentPath={currentPath}
+    onNavigate={navigate}
+    selectedBrand={selectedBrand || "Starbucks"}
+    onSelectBrand={async (brandName) => {
+      setIsAnalyzing(true);
+      try {
+        const result = await runLoyaltyAnalysis(brandName);
+        setLiveData(result);
+        handleBrandSelectionChange(brandName.strip().toLowerCase());
+      } catch (error) {
+        console.error("Sidebar interaction pull failed:", error);
+        setLiveData(null); 
+        handleBrandSelectionChange(brandName.strip().toLowerCase());
+       
+      } finally {
+        setIsAnalyzing(false);
+      }
+    }}
+  >
+    {/* If it's reloading the persistent state from the database, show a clean loader */}
+    {isAnalyzing && !liveData ? (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-teal-400 animate-pulse font-bold tracking-widest text-xs uppercase">
+          Restoring connection session...
+        </div>
+      </div>
+    ) : (
+      childView
+    )}
+  </MainLayout>
   );
 }
 

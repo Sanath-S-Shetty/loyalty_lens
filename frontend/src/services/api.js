@@ -48,3 +48,45 @@ const pollForResults = async (jobId) => {
   }
   throw new Error('Analysis timed out.');
 };
+
+
+export const fetchDashboardData = async () => {
+  try {
+    const res = await fetch(`${API_BASE_URL}/dashboard`);
+    if (!res.ok) throw new Error('Failed to fetch dashboard data');
+    return await res.json();
+  } catch (error) {
+    console.error("Error fetching dashboard data:", error);
+    return { 
+      metrics: { totalBrands: 0, avgScore: 0, avgSentiment: 0, totalScrapes: 0 }, 
+      brands: [] 
+    };
+  }
+};
+
+export const fetchComparisonMatrix = async (companyNames) => {
+  try {
+    const res = await fetch(`${API_BASE_URL}/comparison`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(companyNames),
+    });
+    if (!res.ok) throw new Error('Failed to fetch comparison matrix');
+    return await res.json();
+  } catch (error) {
+    console.error("Error fetching comparison matrix:", error);
+    return [];
+  }
+};
+
+export const searchCompanyDatabase = async (query) => {
+  if (!query.trim()) return [];
+  try {
+    const res = await fetch(`${API_BASE_URL}/companies/search?q=${encodeURIComponent(query)}`);
+    if (!res.ok) throw new Error('Search failed');
+    return await res.json();
+  } catch (error) {
+    console.error("Database search failure:", error);
+    return [];
+  }
+};

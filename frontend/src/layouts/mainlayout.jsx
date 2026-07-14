@@ -12,32 +12,34 @@ export default function MainLayout({
   const [searchVal, setSearchVal] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
-  const activeBrandData = mockBrands[selectedBrand] || mockBrands.starbucks;
+  // REPLACE your current activeBrandData line with this line:
+const activeBrandData = mockBrands[selectedBrand?.toLowerCase()] || { name: selectedBrand || "Starbucks" };
 
-  const handleSearchSubmit = (e) => {
+  const handleSearchSubmit = async (e) => {
     e.preventDefault();
-    if (!searchVal) return;
+    const query = searchVal.trim();
+    if (!query) return;
 
-    const normalized = searchVal.toLowerCase().trim();
-    let matchedKey = null;
+    // 1. Fetch matching brands from the database to verify it exists
+    const matches = await searchCompanyDatabase(query);
+    
+    // 2. Check if the user's typed query exactly matches a database entry (ignoring case)
+    const exactMatch = matches.find(
+      (m) => m.toLowerCase() === query.toLowerCase()
+    );
 
-    for (const key of Object.keys(mockBrands)) {
-      if (
-        key.includes(normalized) ||
-        mockBrands[key].name.toLowerCase().includes(normalized)
-      ) {
-        matchedKey = key;
-        break;
-      }
-    }
-
-    if (matchedKey) {
-      onSelectBrand(matchedKey);
+    if (exactMatch) {
+      // ✅ Found it! Proceed to the program view
+      onSelectBrand(exactMatch);
       setSearchVal("");
+      setShowSuggestions(false);
       onNavigate("programs");
     } else {
-      alert(`No program found matching "${searchVal}". Try Starbucks, Marriott, Delta, Sephora, or Hilton.`);
+      // ❌ Not found! Block the navigation and alert the user
+      alert(`No program found matching "${query}".\n\nPlease select a brand from the dropdown, or return to the Dashboard to run a new AI analysis.`);
     }
   };
 
@@ -137,43 +139,21 @@ export default function MainLayout({
 
         {/* Brand Switcher at Bottom of Sidebar */}
         <div className="p-4 border-t border-white/5 relative">
-          <div className="text-[9px] text-white/40 font-bold uppercase tracking-wider mb-2">Analyzing Brand</div>
+        
 
           <div
-            onClick={() => setShowDropdown(!showDropdown)}
+            onClick={() => setShowDropdown()}
             className="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-2xl cursor-pointer hover:bg-white/10 hover:border-white/20 transition duration-200"
           >
             <div className="flex items-center gap-2.5 overflow-hidden">
-              <div className="w-6 h-6 rounded-lg bg-teal-500/10 flex items-center justify-center text-[10px] font-bold text-teal-400 flex-shrink-0 border border-teal-500/20">
-                {activeBrandData.name.charAt(0)}
-              </div>
-              <span className="text-xs font-bold text-white truncate">{activeBrandData.name}</span>
+            
+              <span className="text-xs font-bold text-white truncate">©LoyaltyLens</span>
             </div>
-            <svg className="w-3.5 h-3.5 text-white/55 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-            </svg>
+          
           </div>
 
           {/* Switch Dropdown Menu */}
-          {showDropdown && (
-            <div className="absolute bottom-16 left-4 right-4 bg-[#0a0a0a]/90 backdrop-blur-xl border border-white/15 rounded-2xl shadow-2xl z-55 overflow-hidden divide-y divide-white/5">
-              {Object.values(mockBrands).map((b) => (
-                <div
-                  key={b.key}
-                  onClick={() => {
-                    onSelectBrand(b.key);
-                    setShowDropdown(false);
-                  }}
-                  className={`p-3 text-xs font-bold text-left cursor-pointer transition ${selectedBrand === b.key
-                      ? "text-teal-400 bg-white/5 font-extrabold"
-                      : "text-white/70 hover:bg-white/5 hover:text-white"
-                    }`}
-                >
-                  {b.name}
-                </div>
-              ))}
-            </div>
-          )}
+         
         </div>
       </aside>
 
@@ -195,18 +175,56 @@ export default function MainLayout({
           </div>
 
           {/* Search Bar */}
-          <form onSubmit={handleSearchSubmit} className="relative max-w-sm w-full hidden sm:block">
-            <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-            <input
-              type="text"
-              placeholder="Ask LoyaltyLens... (e.g. Delta)"
-              value={searchVal}
-              onChange={(e) => setSearchVal(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 text-xs border border-white/10 rounded-full focus:outline-none focus:border-teal-400 bg-white/5 hover:bg-white/10 transition text-white placeholder:text-white/40"
-            />
-          </form>
+       {/* <form onSubmit={handleSearchSubmit} className="relative max-w-sm w-full hidden sm:block">
+  <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+  </svg>
+  <input
+    type="text"
+    placeholder="Ask LoyaltyLens..."
+    value={searchVal}
+    onFocus={() => setShowSuggestions(true)}
+    onBlur={() => setShowSuggestions(false)} // No more setTimeout needed!
+    onChange={async (e) => {
+      const val = e.target.value;
+      setSearchVal(val);
+      if (val.trim().length > 1) {
+        // Ensure searchCompanyDatabase is imported at the top of MainLayout!
+        const matches = await searchCompanyDatabase(val); 
+        setSuggestions(matches);
+      } else {
+        setSuggestions([]);
+      }
+    }}
+    className="w-full pl-10 pr-4 py-2 text-xs border border-white/10 rounded-full focus:outline-none focus:border-teal-400 bg-white/5 hover:bg-white/10 transition text-white placeholder:text-white/40"
+  />
+
+//  
+//   {showSuggestions && suggestions.length > 0 && (
+//     <div className="absolute top-full left-0 right-0 mt-2 bg-black/80 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden shadow-2xl z-50">
+//       {suggestions.map((companyName) => (
+//         <div
+//           key={companyName}
+//           // 🔥 MAGIC FIX: onMouseDown fires before the input loses focus!
+//           onMouseDown={(e) => {
+//             e.preventDefault(); // Prevents the input from losing focus prematurely
+//             onSelectBrand(companyName);
+//             setSearchVal("");
+//             setSuggestions([]);
+//             setShowSuggestions(false);
+//             onNavigate("programs");
+//           }}
+//           className="px-4 py-2.5 text-xs text-white/80 hover:text-white hover:bg-white/10 cursor-pointer transition border-b border-white/[0.03] last:border-0 flex items-center justify-between"
+//         >
+//           <span>{companyName}</span>
+//           <span className="text-[9px] text-teal-400 bg-teal-500/10 border border-teal-500/20 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider">
+//             In Database
+//           </span>
+//         </div>
+//       ))}
+//     </div>
+//   )}
+// </form> */}
 
           {/* User profile & quick status indicators */}
           <div className="flex items-center gap-4">
@@ -216,11 +234,7 @@ export default function MainLayout({
 
             <div className="w-[1px] h-6 bg-white/10 hidden md:block"></div>
 
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white font-bold text-xs">
-                JD
-              </div>
-            </div>
+          
           </div>
         </header>
 
@@ -230,61 +244,7 @@ export default function MainLayout({
         </main>
       </div>
 
-      {/* 3. MOBILE MENU DRAWER */}
-      {mobileMenuOpen && (
-        <div className="fixed inset-0 z-55 flex">
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setMobileMenuOpen(false)}></div>
-
-          <aside className="relative flex flex-col w-64 max-w-xs bg-[#09090b]/95 border-r border-white/10 text-white h-full z-55 shadow-2xl justify-between">
-            <div>
-              <div className="flex items-center justify-between p-5 border-b border-white/5">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 text-teal-400">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" />
-                    </svg>
-                  </div>
-                  <span className="font-bold text-sm tracking-wider">LoyaltyLens</span>
-                </div>
-                <button onClick={() => setMobileMenuOpen(false)} className="text-white/60 hover:text-white p-1">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-
-              <nav className="p-4 space-y-1.5">
-                {menuItems.map((item) => {
-                  const isActive = currentPath === item.path;
-                  return (
-                    <button
-                      key={item.name}
-                      onClick={() => {
-                        onNavigate(item.path);
-                        setMobileMenuOpen(false);
-                      }}
-                      className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl text-xs font-semibold tracking-wide transition-all duration-300 ${isActive
-                          ? "bg-gradient-to-r from-teal-500/20 to-emerald-500/20 border border-teal-500/30 text-teal-300"
-                          : "text-white/60 hover:text-white hover:bg-white/5"
-                        }`}
-                    >
-                      {item.icon}
-                      {item.name}
-                    </button>
-                  );
-                })}
-              </nav>
-            </div>
-
-            <div className="p-4 border-t border-white/5">
-              <div className="text-[9px] text-white/40 font-bold uppercase tracking-wider mb-2">Analyzing Brand</div>
-              <div className="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-2xl">
-                <span className="text-xs font-bold text-white truncate">{activeBrandData.name}</span>
-              </div>
-            </div>
-          </aside>
-        </div>
-      )}
+     
 
     </div>
   );
