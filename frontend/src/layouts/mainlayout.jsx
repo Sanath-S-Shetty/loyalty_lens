@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { mockBrands } from "../data/database";
 import AnimatedBackground from "../components/background";
 
 export default function MainLayout({
@@ -16,7 +15,7 @@ export default function MainLayout({
   const [showSuggestions, setShowSuggestions] = useState(false);
 
   // REPLACE your current activeBrandData line with this line:
-const activeBrandData = mockBrands[selectedBrand?.toLowerCase()] || { name: selectedBrand || "Starbucks" };
+  const activeBrandData =  { name: selectedBrand || "Starbucks" }; 
 
   const handleSearchSubmit = async (e) => {
     e.preventDefault();
@@ -87,11 +86,13 @@ const activeBrandData = mockBrands[selectedBrand?.toLowerCase()] || { name: sele
         </svg>
       )
     },
-    // { name: "Sentinel", path: "sentinel", icon: (
-    //   <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    //     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" strokeLinecap="round"/>
-    //   </svg>
-    // )}
+    {
+      name: "Contact us", path: "contact", icon: (
+        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      )
+    }
   ];
 
   return (

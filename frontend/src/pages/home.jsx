@@ -1,4 +1,4 @@
-import React,{ useState } from "react";
+import React, { useState } from "react";
 
 export default function Home({ onAnalysisComplete, onNavigateCompare }) {
   const [showSearchModal, setShowSearchModal] = useState(false);
@@ -7,93 +7,47 @@ export default function Home({ onAnalysisComplete, onNavigateCompare }) {
   const [searchStatus, setSearchStatus] = useState("");
   const [agentOutput, setAgentOutput] = useState(null);
 
-  // Pre-configured reports for simulation
-  const mockReports = {
-    starbucks: {
-      name: "Starbucks Rewards",
-      tiers: "Green (0-150 Stars), Gold (150+ Stars)",
-      earnRate: "2 Stars per $1 spent with Starbucks Card, 1 Star per $1 with cash/debit",
-      redemption: "25 Stars (customize drink), 100 Stars (brew/bakery), 200 Stars (latte), 400 Stars (merch)",
-      strengths: "Seamless mobile app integration, highly gamified experience, massive active member base.",
-      weaknesses: "Frequent redemption cost increases (points inflation), limited reward variety outside beverages.",
-      sentiment: "87% Positive (highly engaging, but complaints about point devaluation)",
-      source: "https://www.starbucks.com/rewards/terms",
-      citation: "Official Starbucks Rewards Terms & Conditions (June 2026)"
-    },
-    marriott: {
-      name: "Marriott Bonvoy",
-      tiers: "Silver Elite (10 nights), Gold Elite (25 nights), Platinum Elite (50 nights), Titanium Elite (75 nights)",
-      earnRate: "10 points per $1 spent at Marriott properties, plus 10% to 75% Elite bonuses",
-      redemption: "Free nights starting at 5,000 points, points-to-airline transfers with 40+ partners",
-      strengths: "Enormous global property selection, high value for top-tier elites (free breakfasts, upgrades).",
-      weaknesses: "Transitioned to dynamic point redemption pricing making luxury stays less predictable.",
-      sentiment: "76% Positive (great hotel footprint, mixed feelings on dynamic pricing)",
-      source: "https://www.marriott.com/loyalty/terms",
-      citation: "Marriott Bonvoy Program Rules & Terms (May 2026)"
-    },
-    delta: {
-      name: "Delta SkyMiles",
-      tiers: "Silver Medallion, Gold Medallion, Platinum Medallion, Diamond Medallion",
-      earnRate: "5 miles per $1 spent on flights (up to 11 miles/$1 for Diamond Elites)",
-      redemption: "Award flights, class upgrades, Sky Club access, Delta Vacations packages",
-      strengths: "Miles never expire, excellent operational reliability and premium flight experience.",
-      weaknesses: "Drastic increases in Medallion Qualification Dollars (MQD) requirements; low value per mile.",
-      sentiment: "64% Positive (loyal flyers value service, but hate recent qualification hikes)",
-      source: "https://www.delta.com/skymiles/program-rules",
-      citation: "Delta SkyMiles Program Rules & Guidelines (2026)"
-    },
-    sephora: {
-      name: "Sephora Beauty Insider",
-      tiers: "Insider (Free), VIB (Spend $350/yr), Rouge (Spend $1,000/yr)",
-      earnRate: "1 point per $1 spent, plus multiplier events (2x, 3x, 4x)",
-      redemption: "100 points (trial size samples), 500 points ($10 off), 2,500+ points (exclusive products/experiences)",
-      strengths: "Excellent experiential rewards, birthday gifts, highly customized product trials.",
-      weaknesses: "Top-tier rewards (Rouge status) have felt progressively less exclusive over time.",
-      sentiment: "82% Positive (highly addictive tier rewards, minor complaints about Rouge benefits)",
-      source: "https://www.sephora.com/beauty/beauty-insider",
-      citation: "Sephora Beauty Insider Terms & Conditions (March 2026)"
-    }
-  };
+
 
   const handleStartAnalysis = async (e) => {
-  e.preventDefault();
-  if (!companyName) return;
+    e.preventDefault();
+    if (!companyName) return;
 
-  setSearchStage(1);
-  setSearchStatus("Stage 1: Finding official loyalty pages & T&Cs using Tavily Search API...");
-  setAgentOutput(null);
+    setSearchStage(1);
+    setSearchStatus("Stage 1: Finding official loyalty pages & T&Cs using Tavily Search API...");
+    setAgentOutput(null);
 
-  // Cosmetic stage progression only — purely visual, doesn't gate anything
-  const timers = [
-    setTimeout(() => {
-      setSearchStage(2);
-      setSearchStatus("Stage 2: Processing and rendering dynamic content using Firecrawl...");
-    }, 1200),
-    setTimeout(() => {
-      setSearchStage(3);
-      setSearchStatus("Stage 3: Fact Finder Agent extracting structured rewards data via Gemini Flash...");
-    }, 2400),
-    setTimeout(() => {
-      setSearchStage(4);
-      setSearchStatus("Stage 4: Critic Agent scanning forums and reviews to calculate Customer Sentiment...");
-    }, 4800),
-   
-  ];
+    // Cosmetic stage progression only — purely visual, doesn't gate anything
+    const timers = [
+      setTimeout(() => {
+        setSearchStage(2);
+        setSearchStatus("Stage 2: Processing and rendering dynamic content using Firecrawl...");
+      }, 1200),
+      setTimeout(() => {
+        setSearchStage(3);
+        setSearchStatus("Stage 3: Fact Finder Agent extracting structured rewards data via Gemini Flash...");
+      }, 2400),
+      setTimeout(() => {
+        setSearchStage(4);
+        setSearchStatus("Stage 4: Critic Agent scanning forums and reviews to calculate Customer Sentiment...");
+      }, 4800),
 
-  try {
-    // THIS is the call that was missing — fires the real backend request
-    // as soon as the form submits, not on a button click after a mock report.
-    await onAnalysisComplete(companyName);
-    timers.forEach(clearTimeout);
-    closeModal(); // App.js has already navigated by the time this resolves
-  } catch (err) {
-    timers.forEach(clearTimeout);
-    console.error("Analysis failed:", err);
-    setSearchStage(0);
-    setSearchStatus("");
-    alert("Analysis failed. Please try again.");
-  }
-};
+    ];
+
+    try {
+      // THIS is the call that was missing — fires the real backend request
+      // as soon as the form submits, not on a button click after a mock report.
+      await onAnalysisComplete(companyName);
+      timers.forEach(clearTimeout);
+      closeModal(); // App.js has already navigated by the time this resolves
+    } catch (err) {
+      timers.forEach(clearTimeout);
+      console.error("Analysis failed:", err);
+      setSearchStage(0);
+      setSearchStatus("");
+      alert("Analysis failed. Please try again.");
+    }
+  };
 
   const closeModal = () => {
     setShowSearchModal(false);
@@ -160,7 +114,7 @@ export default function Home({ onAnalysisComplete, onNavigateCompare }) {
           <a href="#" className="px-4 py-1.5 rounded-full text-xs font-medium text-white/60 hover:text-white hover:bg-white/5 transition-all duration-200">Programs</a>
           <a href="#" className="px-4 py-1.5 rounded-full text-xs font-medium text-white/60 hover:text-white hover:bg-white/5 transition-all duration-200">Compare</a>
           <a href="#" className="px-4 py-1.5 rounded-full text-xs font-medium text-white/60 hover:text-white hover:bg-white/5 transition-all duration-200">Reports</a>
-          <a href="#" className="px-4 py-1.5 rounded-full text-xs font-medium text-white/60 hover:text-white hover:bg-white/5 transition-all duration-200">FAQ</a>
+          <a href="#" className="px-4 py-1.5 rounded-full text-xs font-medium text-white/60 hover:text-white hover:bg-white/5 transition-all duration-200">Contact us</a>
           <div className="w-[1px] h-4 bg-white/15 mx-1"></div>
           <button className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 text-[10px] uppercase font-bold tracking-wider text-teal-400 transition-all duration-200">
             Agent Live
@@ -176,11 +130,8 @@ export default function Home({ onAnalysisComplete, onNavigateCompare }) {
         {/* Right Action */}
         <div className="flex items-center gap-5">
           <a href="#" className="flex items-center gap-1.5 text-xs text-white/70 hover:text-white transition duration-200">
-            <svg className="w-4 h-4 text-white/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-              <circle cx="12" cy="7" r="4" />
-            </svg>
-            Create Account
+
+
           </a>
         </div>
       </header>
@@ -405,7 +356,7 @@ export default function Home({ onAnalysisComplete, onNavigateCompare }) {
                     { label: "2. Scrape", stageNum: 2 },
                     { label: "3. Extract", stageNum: 3 },
                     { label: "4. Sentiment", stageNum: 4 },
-                   
+
                   ].map((s) => (
                     <div
                       key={s.label}
@@ -502,7 +453,7 @@ export default function Home({ onAnalysisComplete, onNavigateCompare }) {
                         if (normalized.includes("marriott") || normalized.includes("bonvoy")) targetKey = "marriott";
                         else if (normalized.includes("delta") || normalized.includes("skymiles")) targetKey = "delta";
                         else if (normalized.includes("sephora") || normalized.includes("insider") || normalized.includes("beauty")) targetKey = "sephora";
-                        
+
                         closeModal();
                         onAnalysisComplete(targetKey);
                       }}

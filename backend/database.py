@@ -1,7 +1,7 @@
 # database.py
 import os
 import datetime
-from sqlalchemy import create_engine, Column, String, DateTime
+from sqlalchemy import create_engine, Column, String, DateTime, Integer
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
@@ -14,7 +14,7 @@ engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
-# 3. Your Database Model
+# 3. Your Database Models
 class DBJob(Base):
     __tablename__ = "jobs"
 
@@ -25,6 +25,16 @@ class DBJob(Base):
     # Using JSONB ensures your structured Pydantic data from LangGraph maps perfectly
     result_data = Column(JSONB, nullable=True) 
     
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+class DBContactMessage(Base):
+    __tablename__ = "contact_messages"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(255), nullable=False)
+    email = Column(String(255), nullable=False)
+    subject = Column(String(255), nullable=True)
+    message = Column(String(2000), nullable=False)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
 # 4. Initialization Helper (Called in main.py to auto-create tables on startup)

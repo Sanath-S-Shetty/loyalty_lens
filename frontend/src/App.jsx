@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from "react";
 import Home from "./pages/home";
 import AnimatedBackground from "./components/background";
-import { mockBrands } from "./data/database";
 import MainLayout from "./layouts/mainlayout";
 import DashboardView from "./pages/DashboardView";
 import ProgramsView from "./pages/ProgramsView";
 import SentimentView from "./pages/SentimentView";
 import ComparisonView from "./pages/ComparisonView";
 import ReportsView from "./pages/ReportsView";
+import ContactView from "./pages/ContactView";
+import FeedbackInboxView from "./pages/FeedbackInboxView";
 import { runLoyaltyAnalysis } from "./services/api"; // <-- Import our new API service!
 
 function App() {
@@ -79,16 +80,11 @@ const handleAnalysisComplete = async (brandInput) => {
       navigate("programs");
 
     } catch (error) {
-      console.error("AI Analysis Failed, falling back to mock data:", error);
+      console.error("AI Analysis Failed", error);
       
-      const fallbackKey = brandInput.trim().toLowerCase();
-      if (mockBrands[fallbackKey]) {
-        setLiveData(null); // Clear live data to use mock
-        handleBrandSelectionChange(fallbackKey);
-        navigate("programs");
-      } else {
-        alert("Analysis failed and no offline mock data is available for this brand.");
-      }
+     
+        alert("Analysis failed, Please try again later.");
+      
     } finally {
       setIsAnalyzing(false);
     }
@@ -96,7 +92,7 @@ const handleAnalysisComplete = async (brandInput) => {
   // If we have live AI data, use it! Otherwise, fall back to the mock database.
   // Change this line in App.jsx
 // Replace your activeBrandData matching block with this clean check:
-  const activeBrandData = liveData || mockBrands[selectedBrand.toLowerCase()] || mockBrands.starbucks;
+  const activeBrandData = liveData ;
 
   // Intercept click events globally
   useEffect(() => {
@@ -119,6 +115,9 @@ const handleAnalysisComplete = async (brandInput) => {
         } else if (text === "reports") {
           e.preventDefault();
           navigate("reports");
+        } else if (text === "contact us" || text === "contact") {
+          e.preventDefault();
+          navigate("contact");
         }
       }
     };
@@ -187,6 +186,12 @@ const handleAnalysisComplete = async (brandInput) => {
     case "reports":
       childView = <ReportsView brand={activeBrandData} />;
       break;
+    case "contact":
+      childView = <ContactView />;
+      break;
+    case "feedback-inbox":
+      childView = <FeedbackInboxView />;
+      break;
     default:
       childView = <DashboardView onSelectBrand={setSelectedBrand} onNavigate={navigate} />;
   }
@@ -201,11 +206,11 @@ const handleAnalysisComplete = async (brandInput) => {
       try {
         const result = await runLoyaltyAnalysis(brandName);
         setLiveData(result);
-        handleBrandSelectionChange(brandName.strip().toLowerCase());
+        handleBrandSelectionChange(brandName.trim().toLowerCase());
       } catch (error) {
         console.error("Sidebar interaction pull failed:", error);
         setLiveData(null); 
-        handleBrandSelectionChange(brandName.strip().toLowerCase());
+        handleBrandSelectionChange(brandName.trim().toLowerCase());
        
       } finally {
         setIsAnalyzing(false);

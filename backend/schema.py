@@ -81,6 +81,12 @@ class LoyaltyReport(BaseModel):
 class AnalysisRequest(BaseModel):
     company_name: str
 
+class ContactMessageRequest(BaseModel):
+    name: str
+    email: str
+    subject: Optional[str] = None
+    message: str
+
 class JobResponse(BaseModel):
     job_id: str
     status: str

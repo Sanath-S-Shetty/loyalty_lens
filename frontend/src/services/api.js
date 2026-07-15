@@ -1,4 +1,44 @@
 const API_BASE_URL = 'http://localhost:8000/api';
+const formatReportData = (report) => {
+  if (!report) return report;
+  
+  // Ensure sources exists and has required title, url, credibility attributes
+  const rawSources = report.actual_sources || report.sources || [
+    { name: "Official Documentation", url: "#", credibility: 95 },
+    { name: "Community Forums", url: "#", credibility: 82 }
+  ];
+  
+  report.sources = rawSources.map(src => ({
+    ...src,
+    title: src.title || src.name || "Official Reference",
+    url: src.url || "#",
+    credibility: src.credibility !== undefined ? src.credibility : 85
+  }));
+  
+  // Ensure sentinel exists
+  if (!report.sentinel) {
+    report.sentinel = {
+      status: "Active",
+      lastScan: new Date().toLocaleDateString(),
+      threatLevel: "Low",
+      alerts: ["Real-time web analysis completed successfully."]
+    };
+  }
+
+  // Ensure positiveThemes and negativeThemes are direct arrays if they got nested or missing
+  if (!Array.isArray(report.positiveThemes)) {
+    report.positiveThemes = (report.sentiment && Array.isArray(report.sentiment.positiveThemes)) 
+      ? report.sentiment.positiveThemes 
+      : [];
+  }
+  if (!Array.isArray(report.negativeThemes)) {
+    report.negativeThemes = (report.sentiment && Array.isArray(report.sentiment.negativeThemes)) 
+      ? report.sentiment.negativeThemes 
+      : [];
+  }
+  
+  return report;
+};
 
 export const runLoyaltyAnalysis = async (companyName) => {
   try {
@@ -11,7 +51,17 @@ export const runLoyaltyAnalysis = async (companyName) => {
     if (!startRes.ok) throw new Error('Failed to start analysis');
     const startData = await startRes.json();
     
+    // ⬇️ THE FIX: Intercept completed cache hits instantly and format them ⬇️
+    if (startData.status === "COMPLETED" && startData.result_data) {
+      console.log("⚡ Instant Cache Hit! Bypassing polling.");
+      return formatReportData(startData.result_data);
+    }
+    // ⬆️ END OF FIX ⬆️
+    
+    // If it's a CACHE MISS, startData.status will be "PENDING", 
+    // and the code safely moves on to poll the backend while the AI runs.
     return await pollForResults(startData.job_id);
+    
   } catch (error) {
     console.error("API Error:", error);
     throw error;
@@ -24,22 +74,7 @@ const pollForResults = async (jobId) => {
     const data = await res.json();
 
     if (data.status === 'COMPLETED') {
-      const report = data.result_data;
-      
-      // Use the actual URLs passed from the LangGraph backend!
-      report.sources = report.actual_sources || [
-        { name: "Official Documentation", url: "#", credibility: 95 },
-        { name: "Community Forums", url: "#", credibility: 82 }
-      ];
-      
-      report.sentinel = {
-        status: "Active",
-        lastScan: new Date().toLocaleDateString(),
-        threatLevel: "Low",
-        alerts: ["Real-time web analysis completed successfully."]
-      };
-      
-      return report;
+      return formatReportData(data.result_data);
     }
     
     if (data.status === 'FAILED') throw new Error(data.result_data?.error || 'Analysis failed');
