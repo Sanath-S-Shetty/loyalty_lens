@@ -1,5 +1,6 @@
 import uuid
 import json
+import os
 import redis
 from typing import Optional
 from fastapi import FastAPI, BackgroundTasks, HTTPException, Depends, Body
@@ -21,8 +22,18 @@ from agents import loyalty_agent_pipeline
 init_db()
 
 # Initialize Redis
+REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 try:
-    redis_client = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
+    if REDIS_URL.startswith("rediss://") or REDIS_URL.startswith("redis://"):
+        redis_client = redis.Redis.from_url(REDIS_URL, decode_responses=True)
+    else:
+        # Fallback to local host configuration if not a connection URI
+        redis_client = redis.Redis(
+            host=os.getenv("REDIS_HOST", "localhost"),
+            port=int(os.getenv("REDIS_PORT", 6379)),
+            db=0,
+            decode_responses=True
+        )
     redis_client.ping()
     print("🟢 Redis connected successfully!")
 except Exception as e:

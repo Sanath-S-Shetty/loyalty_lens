@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { fetchContactMessages } from "../services/api";
 
 export default function FeedbackInboxView() {
   const [messages, setMessages] = useState([]);
@@ -8,11 +9,8 @@ export default function FeedbackInboxView() {
   const fetchMessages = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch("http://localhost:8000/api/contact");
-      if (res.ok) {
-        const data = await res.json();
-        setMessages(data);
-      }
+      const data = await fetchContactMessages();
+      setMessages(data);
     } catch (error) {
       console.error("Failed to fetch contact messages:", error);
     } finally {

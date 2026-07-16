@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:8000/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
 const formatReportData = (report) => {
   if (!report) return report;
   
@@ -124,4 +124,25 @@ export const searchCompanyDatabase = async (query) => {
     console.error("Database search failure:", error);
     return [];
   }
+};
+
+export const submitContactMessage = async (formData) => {
+  const res = await fetch(`${API_BASE_URL}/contact`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      name: formData.name,
+      email: formData.email,
+      subject: formData.subject || null,
+      message: formData.message,
+    }),
+  });
+  if (!res.ok) throw new Error("Failed to submit contact message");
+  return await res.json();
+};
+
+export const fetchContactMessages = async () => {
+  const res = await fetch(`${API_BASE_URL}/contact`);
+  if (!res.ok) throw new Error("Failed to fetch contact messages");
+  return await res.json();
 };

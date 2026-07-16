@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { submitContactMessage } from "../services/api";
 
 export default function ContactView() {
   const [formData, setFormData] = useState({
@@ -19,19 +20,7 @@ export default function ContactView() {
 
     setIsSubmitting(true);
     try {
-      const res = await fetch("http://localhost:8000/api/contact", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          subject: formData.subject || null,
-          message: formData.message
-        })
-      });
-
-      if (!res.ok) throw new Error("Failed to submit contact message");
-
+      await submitContactMessage(formData);
       setIsSubmitted(true);
       setFormData({ name: "", email: "", subject: "", message: "" });
     } catch (error) {
