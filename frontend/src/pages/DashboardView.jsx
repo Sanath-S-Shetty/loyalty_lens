@@ -54,7 +54,7 @@ export default function DashboardView({ onSelectBrand, onNavigate }) {
       </div>
 
       {/* Analytics KPI Dashboard Banner */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white/[0.03] backdrop-blur-md border border-white/[0.06] rounded-3xl p-5 shadow-2xl">
           <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Monitored Contracts</span>
           <div className="text-3xl font-extrabold text-white mt-1">{metrics.totalBrands} Programs</div>

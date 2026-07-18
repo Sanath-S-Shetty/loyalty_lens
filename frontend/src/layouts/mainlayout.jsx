@@ -101,6 +101,78 @@ export default function MainLayout({
       {/* 3D Animated Stars Background */}
       <AnimatedBackground />
 
+      {/* Mobile Drawer (Sidebar overlay on small screens) */}
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 z-50 flex lg:hidden">
+          {/* Backdrop overlay */}
+          <div 
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+
+          {/* Drawer Panel */}
+          <aside className="relative flex flex-col w-64 max-w-[80vw] h-full bg-black/85 backdrop-blur-2xl border-r border-white/10 shadow-2xl glass z-50">
+            {/* Header logo & close button */}
+            <div className="flex items-center justify-between p-5 border-b border-white/5">
+              <div 
+                className="flex items-center gap-2.5 cursor-pointer" 
+                onClick={() => { 
+                  onNavigate("home"); 
+                  setMobileMenuOpen(false); 
+                }}
+              >
+                <div className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 border border-white/10 text-teal-400">
+                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </div>
+                <div>
+                  <span className="font-bold text-sm tracking-wider block bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-300">LoyaltyLens</span>
+                </div>
+              </div>
+              <button
+                onClick={() => setMobileMenuOpen(false)}
+                className="p-1.5 rounded-xl border border-white/10 hover:bg-white/5 text-white/80"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Menu Items */}
+            <nav className="p-4 space-y-1.5 flex-grow overflow-y-auto">
+              {menuItems.map((item) => {
+                const isActive = currentPath === item.path;
+                return (
+                  <button
+                    key={item.name}
+                    onClick={() => {
+                      onNavigate(item.path);
+                      setMobileMenuOpen(false);
+                    }}
+                    className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl text-xs font-semibold tracking-wide transition-all duration-300 ${isActive
+                        ? "bg-gradient-to-r from-teal-500/20 to-emerald-500/20 border border-teal-500/30 text-teal-300 shadow-lg shadow-teal-500/5"
+                        : "text-white/60 hover:text-white hover:bg-white/5"
+                      }`}
+                  >
+                    {item.icon}
+                    {item.name}
+                  </button>
+                );
+              })}
+            </nav>
+
+            {/* Footer */}
+            <div className="p-4 border-t border-white/5">
+              <div className="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-2xl">
+                <span className="text-xs font-bold text-white">©LoyaltyLens</span>
+              </div>
+            </div>
+          </aside>
+        </div>
+      )}
+
       {/* 1. SIDEBAR (Desktop) */}
       <aside className="relative z-20 hidden lg:flex flex-col w-64 bg-black/45 backdrop-blur-xl flex-shrink-0 border-r border-white/5 justify-between">
         <div>
@@ -140,21 +212,14 @@ export default function MainLayout({
 
         {/* Brand Switcher at Bottom of Sidebar */}
         <div className="p-4 border-t border-white/5 relative">
-        
-
           <div
-            onClick={() => setShowDropdown()}
+            onClick={() => setShowDropdown(prev => !prev)}
             className="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-2xl cursor-pointer hover:bg-white/10 hover:border-white/20 transition duration-200"
           >
             <div className="flex items-center gap-2.5 overflow-hidden">
-            
               <span className="text-xs font-bold text-white truncate">©LoyaltyLens</span>
             </div>
-          
           </div>
-
-          {/* Switch Dropdown Menu */}
-         
         </div>
       </aside>
 
@@ -175,58 +240,6 @@ export default function MainLayout({
             <span className="lg:hidden font-bold text-sm text-white tracking-wider">LoyaltyLens</span>
           </div>
 
-          {/* Search Bar */}
-       {/* <form onSubmit={handleSearchSubmit} className="relative max-w-sm w-full hidden sm:block">
-  <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-  </svg>
-  <input
-    type="text"
-    placeholder="Ask LoyaltyLens..."
-    value={searchVal}
-    onFocus={() => setShowSuggestions(true)}
-    onBlur={() => setShowSuggestions(false)} // No more setTimeout needed!
-    onChange={async (e) => {
-      const val = e.target.value;
-      setSearchVal(val);
-      if (val.trim().length > 1) {
-        // Ensure searchCompanyDatabase is imported at the top of MainLayout!
-        const matches = await searchCompanyDatabase(val); 
-        setSuggestions(matches);
-      } else {
-        setSuggestions([]);
-      }
-    }}
-    className="w-full pl-10 pr-4 py-2 text-xs border border-white/10 rounded-full focus:outline-none focus:border-teal-400 bg-white/5 hover:bg-white/10 transition text-white placeholder:text-white/40"
-  />
-
-//  
-//   {showSuggestions && suggestions.length > 0 && (
-//     <div className="absolute top-full left-0 right-0 mt-2 bg-black/80 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden shadow-2xl z-50">
-//       {suggestions.map((companyName) => (
-//         <div
-//           key={companyName}
-//           // 🔥 MAGIC FIX: onMouseDown fires before the input loses focus!
-//           onMouseDown={(e) => {
-//             e.preventDefault(); // Prevents the input from losing focus prematurely
-//             onSelectBrand(companyName);
-//             setSearchVal("");
-//             setSuggestions([]);
-//             setShowSuggestions(false);
-//             onNavigate("programs");
-//           }}
-//           className="px-4 py-2.5 text-xs text-white/80 hover:text-white hover:bg-white/10 cursor-pointer transition border-b border-white/[0.03] last:border-0 flex items-center justify-between"
-//         >
-//           <span>{companyName}</span>
-//           <span className="text-[9px] text-teal-400 bg-teal-500/10 border border-teal-500/20 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider">
-//             In Database
-//           </span>
-//         </div>
-//       ))}
-//     </div>
-//   )}
-// </form> */}
-
           {/* User profile & quick status indicators */}
           <div className="flex items-center gap-4">
             <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 bg-teal-500/10 border border-teal-500/20 text-teal-400 rounded-full text-[10px] font-bold uppercase tracking-wider">
@@ -234,19 +247,14 @@ export default function MainLayout({
             </div>
 
             <div className="w-[1px] h-6 bg-white/10 hidden md:block"></div>
-
-          
           </div>
         </header>
 
         {/* MAIN CONTROLLER VIEWPORT */}
-        <main className="flex-grow p-6 md:p-8 max-w-6xl w-full mx-auto overflow-y-auto z-10">
+        <main className="flex-grow p-4 sm:p-6 md:p-8 max-w-6xl w-full mx-auto overflow-y-auto z-10">
           {children}
         </main>
       </div>
-
-     
-
     </div>
   );
 }

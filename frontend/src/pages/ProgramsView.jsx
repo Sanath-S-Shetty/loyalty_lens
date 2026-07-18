@@ -46,8 +46,8 @@ export default function ProgramsView({ brand }) {
           </div>
         </div>
 
-        {/* 4 KPI Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 pt-6">
+        {/* KPI Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-6">
           <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4">
             <div className="text-xs text-gray-500 font-medium">Program Score</div>
             <div className="text-2xl font-bold text-white mt-1">{brand.score}/100</div>

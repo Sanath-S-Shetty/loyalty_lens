@@ -6,6 +6,7 @@ export default function Home({ onAnalysisComplete, onNavigateCompare }) {
   const [searchStage, setSearchStage] = useState(0);
   const [searchStatus, setSearchStatus] = useState("");
   const [agentOutput, setAgentOutput] = useState(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
 
 
@@ -127,13 +128,93 @@ export default function Home({ onAnalysisComplete, onNavigateCompare }) {
           </div>
         </nav>
 
-        {/* Right Action */}
-        <div className="flex items-center gap-5">
-          <a href="#" className="flex items-center gap-1.5 text-xs text-white/70 hover:text-white transition duration-200">
+        {/* Hamburger Menu (Mobile Only) */}
+        <button
+          onClick={() => setMobileMenuOpen(true)}
+          className="md:hidden p-2 rounded-xl border border-white/10 hover:bg-white/5 text-white/80 transition"
+        >
+          <svg className="w-5.5 h-5.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
 
+        {/* Mobile Drawer (Landing Page) */}
+        {mobileMenuOpen && (
+          <div className="fixed inset-0 z-50 flex md:hidden">
+            {/* Backdrop */}
+            <div 
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300"
+              onClick={() => setMobileMenuOpen(false)}
+            />
 
-          </a>
-        </div>
+            {/* Panel */}
+            <aside className="relative flex flex-col w-64 max-w-[80vw] h-full bg-black/85 backdrop-blur-2xl border-r border-white/10 shadow-2xl glass z-50 animate-float">
+              <div className="flex items-center justify-between p-5 border-b border-white/5">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 border border-white/10 text-teal-400">
+                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </div>
+                  <span className="font-bold text-sm tracking-wider text-white">LoyaltyLens</span>
+                </div>
+                <button
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="p-1.5 rounded-xl border border-white/10 hover:bg-white/5 text-white/80"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <nav className="p-5 flex flex-col gap-4">
+                <a 
+                  href="#" 
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="text-sm font-semibold text-white/80 hover:text-white transition"
+                >
+                  Home
+                </a>
+                <a 
+                  href="#" 
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="text-sm font-semibold text-white/80 hover:text-white transition"
+                >
+                  Programs
+                </a>
+                <a 
+                  href="#" 
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="text-sm font-semibold text-white/80 hover:text-white transition"
+                >
+                  Compare
+                </a>
+                <a 
+                  href="#" 
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="text-sm font-semibold text-white/80 hover:text-white transition"
+                >
+                  Reports
+                </a>
+                <a 
+                  href="#" 
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="text-sm font-semibold text-white/80 hover:text-white transition"
+                >
+                  Contact us
+                </a>
+              </nav>
+
+              <div className="mt-auto p-5 border-t border-white/5">
+                <div className="flex items-center gap-2 p-2 bg-white/5 border border-white/10 rounded-2xl">
+                  <span className="w-2 h-2 rounded-full bg-teal-400 animate-pulse"></span>
+                  <span className="text-[10px] text-teal-400 font-bold uppercase tracking-wider">Agent Live</span>
+                </div>
+              </div>
+            </aside>
+          </div>
+        )}
       </header>
 
       {/* 
@@ -282,7 +363,7 @@ export default function Home({ onAnalysisComplete, onNavigateCompare }) {
       */}
       {showSearchModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md transition-opacity duration-300">
-          <div className="relative w-full max-w-2xl bg-[#09090b]/90 border border-white/10 rounded-3xl p-6 md:p-8 overflow-hidden shadow-2xl glass animate-float">
+          <div className="relative w-full max-w-2xl max-h-[90vh] flex flex-col bg-[#09090b]/90 border border-white/10 rounded-3xl p-5 sm:p-6 md:p-8 overflow-y-auto shadow-2xl glass animate-float">
 
             {/* Modal Ambient Glow */}
             <div className="absolute -top-12 -right-12 w-48 h-48 bg-teal-500/20 rounded-full blur-3xl pointer-events-none"></div>
@@ -374,7 +455,7 @@ export default function Home({ onAnalysisComplete, onNavigateCompare }) {
 
             {/* Agent Output Report */}
             {agentOutput && (
-              <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+              <div className="space-y-4 max-h-[65vh] overflow-y-auto pr-2">
                 <div className="flex items-center justify-between border-b border-white/10 pb-3">
                   <div>
                     <span className="text-[10px] uppercase font-bold tracking-widest text-teal-400">Verified Intelligence Report</span>
